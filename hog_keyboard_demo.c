@@ -268,8 +268,6 @@ static void send_report(int modifier, int keycode){
 
 // Demo Application
 
-#ifdef HAVE_BTSTACK_STDIN
-
 // On systems with STDIN, we can directly type on the console
 static enum {
     W4_INPUT,
@@ -331,71 +329,6 @@ static void stdin_process(char character){
     }
 }
 
-#else
-
-// On embedded systems, send constant demo text with fixed period
-
-#define TYPING_PERIOD_MS 50
-static const char * demo_text = "\n\nHello World!\n\nThis is the BTstack HID Keyboard Demo running on an Embedded Device.\n\n";
-
-static int demo_pos;
-static btstack_timer_source_t typing_timer;
-
-static int send_keycode;
-static int send_modifier;
-static int send_keyup;
-
-static void send_key(int modifier, int keycode){
-    send_keycode = keycode;
-    send_modifier = modifier;
-    hids_device_request_can_send_now_event(con_handle);
-}
-
-static void typing_can_send_now(void){
-   send_report(send_modifier, send_keycode);
-}
-
-static void typing_timer_handler(btstack_timer_source_t * ts){
-
-    if (send_keyup){
-        // just send key up
-        send_keyup = 0;
-        send_key(0, 0);
-    } else {
-        // get next character
-        uint8_t character = demo_text[demo_pos++];
-        if (demo_text[demo_pos] == 0){
-            demo_pos = 0;
-        }
-
-        // get keycode and send
-        uint8_t modifier;
-        uint8_t keycode;
-        int found = keycode_and_modifer_us_for_character(character, &keycode, &modifier);
-        if (found){
-            printf("%c\n", character);
-            send_key(modifier, keycode);
-            send_keyup = 1;
-        }
-    }
-
-    // set next timer
-    btstack_run_loop_set_timer(ts, TYPING_PERIOD_MS);
-    btstack_run_loop_add_timer(ts);
-}
-
-static void hid_embedded_start_typing(void){
-    printf("Start typing..\n");
-
-    demo_pos = 0;
-    // set one-shot timer
-    typing_timer.process = &typing_timer_handler;
-    btstack_run_loop_set_timer(&typing_timer, TYPING_PERIOD_MS);
-    btstack_run_loop_add_timer(&typing_timer);
-}
-
-#endif
-
 static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
     UNUSED(size);
@@ -423,13 +356,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                 case HIDS_SUBEVENT_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_input_report_enable_get_con_handle(packet);
                     printf("Report Characteristic Subscribed %u\n", hids_subevent_input_report_enable_get_enable(packet));
-#ifdef HAVE_BTSTACK_STDIN
-		    printf("HAVE_BTSTACK_STDIN defined\n");
-#endif
-#ifndef HAVE_BTSTACK_STDIN
-		    printf("HAVE_BTSTACK_STDIN NOT defined\n");
-                    hid_embedded_start_typing();
-#endif
+                    // INIT HERE
                     break;
                 case HIDS_SUBEVENT_BOOT_KEYBOARD_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_boot_keyboard_input_report_enable_get_con_handle(packet);
@@ -457,10 +384,8 @@ int btstack_main(void)
 {
     le_keyboard_setup();
 
-#ifdef HAVE_BTSTACK_STDIN
     btstack_ring_buffer_init(&ascii_input_buffer, ascii_input_storage, sizeof(ascii_input_storage));
     btstack_stdin_setup(stdin_process);
-#endif
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
