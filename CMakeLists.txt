@@ -52,7 +52,13 @@ target_link_libraries(hog_keyboard_demo
 target_include_directories(hog_keyboard_demo PRIVATE
     ${CMAKE_CURRENT_LIST_DIR} # For btstack config
     )
+target_compile_definitions(hog_keyboard_demo PRIVATE
+    HAVE_BTSTACK_STDIN=1
+    )
 pico_btstack_make_gatt_header(hog_keyboard_demo PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard_demo.gatt")
 
 pico_add_extra_outputs(hog_keyboard_demo)
+
+pico_enable_stdio_usb(hog_keyboard_demo 0)
+pico_enable_stdio_uart(hog_keyboard_demo 1)
 
