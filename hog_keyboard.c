@@ -341,3 +341,11 @@ int btstack_main(void)
 
     return 0;
 }
+
+
+static int led_state = 0;
+
+void hal_led_toggle(void){
+    led_state = 1 - led_state;
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state);
+}
