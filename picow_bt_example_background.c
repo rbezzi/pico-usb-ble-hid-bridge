@@ -8,6 +8,8 @@
 #include "pico/stdlib.h"
 #include "picow_bt_example_common.h"
 
+int picow_bt_example_init(void);
+
 int main() {
     stdio_init_all();
 

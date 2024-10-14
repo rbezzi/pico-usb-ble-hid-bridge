@@ -49,6 +49,8 @@
 
 #include "btstack.h"
 
+#include "pico/cyw43_arch.h"
+
 #include "ble/gatt-service/battery_service_server.h"
 #include "ble/gatt-service/device_information_service_server.h"
 #include "ble/gatt-service/hids_device.h"
@@ -267,6 +269,12 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
     if (packet_type != HCI_EVENT_PACKET) return;
 
     switch (hci_event_packet_get_type(packet)) {
+        case BTSTACK_EVENT_STATE:
+            if (btstack_event_state_get_state(packet) != HCI_STATE_WORKING) return;
+            bd_addr_t local_addr;
+            gap_local_bd_addr(local_addr);
+            printf("BTstack up and running on %s.\n", bd_addr_to_str(local_addr));
+            break;
         case HCI_EVENT_DISCONNECTION_COMPLETE:
             con_handle = HCI_CON_HANDLE_INVALID;
             printf("Disconnected\n");
@@ -308,6 +316,16 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
         default:
             break;
     }
+}
+
+int picow_bt_example_init(void) {
+    // initialize CYW43 driver architecture (will enable BT if/because CYW43_ENABLE_BLUETOOTH == 1)
+    if (cyw43_arch_init()) {
+        printf("failed to initialise cyw43_arch\n");
+        return -1;
+    }
+
+    return 0;
 }
 
 int btstack_main(void);
