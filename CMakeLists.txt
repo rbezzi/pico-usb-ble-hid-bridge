@@ -37,8 +37,8 @@ pico_sdk_init()
 
 add_library(usb_hid_host)
 target_sources(usb_hid_host PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/hid_app.c
-    ${CMAKE_CURRENT_LIST_DIR}/main.c
+    ${CMAKE_CURRENT_LIST_DIR}/tusb_hid.c
+    ${CMAKE_CURRENT_LIST_DIR}/tusb_main.c
     )
 target_include_directories(usb_hid_host PRIVATE   
     ${CMAKE_CURRENT_LIST_DIR} # For tusb config
@@ -58,8 +58,7 @@ target_link_libraries(usb_hid_host PRIVATE
 # Add executable. Default name is the project name, version 0.1
 add_executable(hog_keyboard
     hog_keyboard.c
-    picow_bt_example_background.c
-    # picow_bt_example_common.c
+    hog_main.c
     )
 target_link_libraries(hog_keyboard
     pico_stdlib
