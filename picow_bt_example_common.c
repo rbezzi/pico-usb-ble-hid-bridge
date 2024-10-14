@@ -88,16 +88,4 @@ void picow_bt_example_main(void) {
 
     btstack_main(0, NULL);
 
-#if TEST_BTWIFI
-    uint32_t start_ms = to_ms_since_boot(get_absolute_time());
-    cyw43_arch_enable_sta_mode();
-    printf("Connecting to WiFi \"%s\"...\n", WIFI_SSID);
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
-        panic("failed to connect");
-    } else {
-        printf("Connected in %lus.\n", (to_ms_since_boot(get_absolute_time()) - start_ms) / 1000);
-    }
-    printf("\nReady, running iperf server at %s\n", ip4addr_ntoa(netif_ip4_addr(netif_list)));
-    lwiperf_start_tcp_server_default(&iperf_report, NULL);
-#endif
 }

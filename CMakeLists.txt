@@ -33,10 +33,29 @@ project(hog_keyboard_demo C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# Add executable. Default name is the project name, version 0.1
+# usb_hid_host
 
-# Standalone example that reads from the on board temperature sensor and sends notifications via BLE
-# Flashes slowly each second to show it's running
+add_library(usb_hid_host)
+target_sources(usb_hid_host PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/hid_app.c
+    ${CMAKE_CURRENT_LIST_DIR}/main.c
+    )
+target_include_directories(usb_hid_host PRIVATE   
+    ${CMAKE_CURRENT_LIST_DIR} # For tusb config
+    )
+target_link_libraries(usb_hid_host PRIVATE
+    pico_stdlib 
+    tinyusb_host 
+    tinyusb_board
+    )
+# add_compile_definitions(
+#     CFG_TUSB_MCU=OPT_MCU_RP2040
+#     CFG_TUSB_OS=OPT_OS_PICO
+# )
+
+# hog_keyboard_demo
+
+# Add executable. Default name is the project name, version 0.1
 add_executable(hog_keyboard_demo
     hog_keyboard_demo.c
     picow_bt_example_background.c
@@ -48,9 +67,13 @@ target_link_libraries(hog_keyboard_demo
     pico_btstack_cyw43
     pico_cyw43_arch_none
     hardware_adc
+    # usb_hid_host
     )
+
 target_include_directories(hog_keyboard_demo PRIVATE
     ${CMAKE_CURRENT_LIST_DIR} # For btstack config
+    ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
+    ${PICO_SDK_PATH}/lib/tinyusb/src
     )
 target_compile_definitions(hog_keyboard_demo PRIVATE
     HAVE_BTSTACK_STDIN=1

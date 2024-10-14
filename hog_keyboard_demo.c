@@ -37,11 +37,6 @@
 
 #define BTSTACK_FILE__ "hog_keyboard_demo.c"
 
-// *****************************************************************************
-/* EXAMPLE_START(hog_keyboard_demo): HID Keyboard LE
- */
-// *****************************************************************************
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +50,11 @@
 #include "ble/gatt-service/battery_service_server.h"
 #include "ble/gatt-service/device_information_service_server.h"
 #include "ble/gatt-service/hids_device.h"
+
+// delete this
+#define REPORT_SIZE 8 * sizeof(uint8_t)
+
+#define REPORT_INPUT_STORAGE_SIZE 20
 
 // from USB HID Specification 1.1, Appendix B.1
 const uint8_t hid_descriptor_keyboard_boot_mode[] = {
@@ -109,57 +109,13 @@ const uint8_t hid_descriptor_keyboard_boot_mode[] = {
     0xc0,                          // End collection
 };
 
+typedef struct hid_keyboard_report
+{
+  uint8_t modifier;   /**< Keyboard modifier (KEYBOARD_MODIFIER_* masks). */
+  uint8_t reserved;   /**< Reserved for OEM use, always set to 0. */
+  uint8_t keycode[6]; /**< Key codes of the currently pressed keys. */
+} hid_keyboard_report_t;
 
-
-//
-#define CHAR_ILLEGAL     0xff
-#define CHAR_RETURN     '\n'
-#define CHAR_ESCAPE      27
-#define CHAR_TAB         '\t'
-#define CHAR_BACKSPACE   0x7f
-
-// Simplified US Keyboard with Shift modifier
-
-/**
- * English (US)
- */
-static const uint8_t keytable_us_none [] = {
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /*   0-3 */
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',                   /*  4-13 */
-    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',                   /* 14-23 */
-    'u', 'v', 'w', 'x', 'y', 'z',                                       /* 24-29 */
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',                   /* 30-39 */
-    CHAR_RETURN, CHAR_ESCAPE, CHAR_BACKSPACE, CHAR_TAB, ' ',            /* 40-44 */
-    '-', '=', '[', ']', '\\', CHAR_ILLEGAL, ';', '\'', 0x60, ',',       /* 45-54 */
-    '.', '/', CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,   /* 55-60 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 61-64 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 65-68 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 69-72 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 73-76 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 77-80 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 81-84 */
-    '*', '-', '+', '\n', '1', '2', '3', '4', '5',                       /* 85-97 */
-    '6', '7', '8', '9', '0', '.', 0xa7,                                 /* 97-100 */
-};
-
-static const uint8_t keytable_us_shift[] = {
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /*  0-3  */
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',                   /*  4-13 */
-    'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',                   /* 14-23 */
-    'U', 'V', 'W', 'X', 'Y', 'Z',                                       /* 24-29 */
-    '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',                   /* 30-39 */
-    CHAR_RETURN, CHAR_ESCAPE, CHAR_BACKSPACE, CHAR_TAB, ' ',            /* 40-44 */
-    '_', '+', '{', '}', '|', CHAR_ILLEGAL, ':', '"', 0x7E, '<',         /* 45-54 */
-    '>', '?', CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,   /* 55-60 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 61-64 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 65-68 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 69-72 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 73-76 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 77-80 */
-    CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL, CHAR_ILLEGAL,             /* 81-84 */
-    '*', '-', '+', '\n', '1', '2', '3', '4', '5',                       /* 85-97 */
-    '6', '7', '8', '9', '0', '.', 0xb1,                                 /* 97-100 */
-};
 
 // static btstack_timer_source_t heartbeat;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
@@ -225,41 +181,18 @@ static void le_keyboard_setup(void){
     hids_device_register_packet_handler(packet_handler);
 }
 
-// HID Keyboard lookup
-static int lookup_keycode(uint8_t character, const uint8_t * table, int size, uint8_t * keycode){
-    int i;
-    for (i=0;i<size;i++){
-        if (table[i] != character) continue;
-        *keycode = i;
-        return 1;
-    }
-    return 0;
-}
-
-static int keycode_and_modifer_us_for_character(uint8_t character, uint8_t * keycode, uint8_t * modifier){
-    int found;
-    found = lookup_keycode(character, keytable_us_none, sizeof(keytable_us_none), keycode);
-    if (found) {
-        *modifier = 0;  // none
-        return 1;
-    }
-    found = lookup_keycode(character, keytable_us_shift, sizeof(keytable_us_shift), keycode);
-    if (found) {
-        *modifier = 2;  // shift
-        return 1;
-    }
-    return 0;
-}
 
 // HID Report sending
-static void send_report(int modifier, int keycode){
-    uint8_t report[] = {  modifier, 0, keycode, 0, 0, 0, 0, 0};
+static void send_hid_report(uint8_t report[8]){
+    uint8_t modifier = report[0];
+    uint8_t keycode = report[2];
+    
     switch (protocol_mode){
         case 0:
-            hids_device_send_boot_keyboard_input_report(con_handle, report, sizeof(report));
+            hids_device_send_boot_keyboard_input_report(con_handle, report, REPORT_SIZE);
             break;
         case 1:
-           hids_device_send_input_report(con_handle, report, sizeof(report));
+           hids_device_send_input_report(con_handle, report, REPORT_SIZE);
            break;
         default:
             break;
@@ -276,38 +209,36 @@ static enum {
 } state;
 
 // Buffer for 20 characters
-static uint8_t ascii_input_storage[20];
-static btstack_ring_buffer_t ascii_input_buffer;
+static hid_keyboard_report_t* report_input_storage[REPORT_INPUT_STORAGE_SIZE];
+static btstack_ring_buffer_t report_input_buffer;
 
 static void typing_can_send_now(void){
     switch (state){
         case W4_CAN_SEND_FROM_BUFFER:
             while (1){
-                uint8_t c;
+                hid_keyboard_report_t report;
                 uint32_t num_bytes_read;
 
-                btstack_ring_buffer_read(&ascii_input_buffer, &c, 1, &num_bytes_read);
+                btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(report), &num_bytes_read);
+                printf("num_bytes_read: %d\n", num_bytes_read);
                 if (num_bytes_read == 0){
                     state = W4_INPUT;
                     break;
                 }
 
-                uint8_t modifier;
-                uint8_t keycode;
-                int found = keycode_and_modifer_us_for_character(c, &keycode, &modifier);
-                if (!found) continue;
+                printf("sending: %c\n", 'a' + report.keycode[0]);
 
-                printf("sending: %c\n", c);
-
-                send_report(modifier, keycode);
+                send_hid_report((uint8_t *)&report);
                 state = W4_CAN_SEND_KEY_UP;
                 hids_device_request_can_send_now_event(con_handle);
                 break;
             }
             break;
-        case W4_CAN_SEND_KEY_UP:
-            send_report(0, 0);
-            if (btstack_ring_buffer_bytes_available(&ascii_input_buffer)){
+        case W4_CAN_SEND_KEY_UP: 
+            printf("sending key up\n");
+            uint8_t report[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+            send_hid_report(report);
+            if (btstack_ring_buffer_bytes_available(&report_input_buffer)){
                 state = W4_CAN_SEND_FROM_BUFFER;
                 hids_device_request_can_send_now_event(con_handle);
             } else {
@@ -320,8 +251,8 @@ static void typing_can_send_now(void){
 }
 
 static void stdin_process(char character){
-    uint8_t c = character;
-    btstack_ring_buffer_write(&ascii_input_buffer, &c, 1);
+    hid_keyboard_report_t report = {0, 0, {character - 'a' + 4, 0, 0, 0, 0, 0}};
+    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)&report, sizeof(report));
     // start sending
     if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
         state = W4_CAN_SEND_FROM_BUFFER;
@@ -384,7 +315,7 @@ int btstack_main(void)
 {
     le_keyboard_setup();
 
-    btstack_ring_buffer_init(&ascii_input_buffer, ascii_input_storage, sizeof(ascii_input_storage));
+    btstack_ring_buffer_init(&report_input_buffer, (uint8_t *)report_input_storage, sizeof(report_input_storage));
     btstack_stdin_setup(stdin_process);
 
     // turn on!
