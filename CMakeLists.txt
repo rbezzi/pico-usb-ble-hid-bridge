@@ -59,7 +59,7 @@ target_link_libraries(usb_hid_host PRIVATE
 add_executable(hog_keyboard
     hog_keyboard.c
     picow_bt_example_background.c
-    picow_bt_example_common.c
+    # picow_bt_example_common.c
     )
 target_link_libraries(hog_keyboard
     pico_stdlib

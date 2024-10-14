@@ -6,9 +6,9 @@
 
 #include "btstack_run_loop.h"
 #include "pico/stdlib.h"
-#include "picow_bt_example_common.h"
 
 int picow_bt_example_init(void);
+void picow_bt_example_main(void);
 
 int main() {
     stdio_init_all();

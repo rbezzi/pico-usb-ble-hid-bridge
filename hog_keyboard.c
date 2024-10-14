@@ -328,7 +328,7 @@ int picow_bt_example_init(void) {
     return 0;
 }
 
-int btstack_main(void);
+//int btstack_main(void);
 int btstack_main(void)
 {
     le_keyboard_setup();
@@ -342,6 +342,11 @@ int btstack_main(void)
     return 0;
 }
 
+void picow_bt_example_main(void) {
+
+    btstack_main();
+
+}
 
 static int led_state = 0;
 
