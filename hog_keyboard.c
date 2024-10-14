@@ -35,7 +35,9 @@
  *
  */
 
-#define BTSTACK_FILE__ "hog_keyboard_demo.c"
+// hog = Hid Over Gatt
+
+#define BTSTACK_FILE__ "hog_keyboard.c"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -43,7 +45,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "hog_keyboard_demo.h"
+#include "hog_keyboard.h"
 
 #include "btstack.h"
 
@@ -199,8 +201,6 @@ static void send_hid_report(uint8_t report[8]){
     }
 }
 
-// Demo Application
-
 // On systems with STDIN, we can directly type on the console
 static enum {
     W4_INPUT,
@@ -323,4 +323,3 @@ int btstack_main(void)
 
     return 0;
 }
-/* EXAMPLE_END */

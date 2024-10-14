@@ -28,7 +28,7 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(hog_keyboard_demo C CXX ASM)
+project(hog_keyboard C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -53,15 +53,15 @@ target_link_libraries(usb_hid_host PRIVATE
 #     CFG_TUSB_OS=OPT_OS_PICO
 # )
 
-# hog_keyboard_demo
+# hog_keyboard
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(hog_keyboard_demo
-    hog_keyboard_demo.c
+add_executable(hog_keyboard
+    hog_keyboard.c
     picow_bt_example_background.c
     picow_bt_example_common.c
     )
-target_link_libraries(hog_keyboard_demo
+target_link_libraries(hog_keyboard
     pico_stdlib
     pico_btstack_ble
     pico_btstack_cyw43
@@ -70,18 +70,18 @@ target_link_libraries(hog_keyboard_demo
     # usb_hid_host
     )
 
-target_include_directories(hog_keyboard_demo PRIVATE
+target_include_directories(hog_keyboard PRIVATE
     ${CMAKE_CURRENT_LIST_DIR} # For btstack config
     ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
     ${PICO_SDK_PATH}/lib/tinyusb/src
     )
-target_compile_definitions(hog_keyboard_demo PRIVATE
+target_compile_definitions(hog_keyboard PRIVATE
     HAVE_BTSTACK_STDIN=1
     )
-pico_btstack_make_gatt_header(hog_keyboard_demo PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard_demo.gatt")
+pico_btstack_make_gatt_header(hog_keyboard PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
 
-pico_add_extra_outputs(hog_keyboard_demo)
+pico_add_extra_outputs(hog_keyboard)
 
-pico_enable_stdio_usb(hog_keyboard_demo 0)
-pico_enable_stdio_uart(hog_keyboard_demo 1)
+pico_enable_stdio_usb(hog_keyboard 0)
+pico_enable_stdio_uart(hog_keyboard 1)
 
