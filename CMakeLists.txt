@@ -51,11 +51,10 @@ pico_sdk_init()
 
 add_library(usb_hid_host)
 target_sources(usb_hid_host PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/tusb_hid.c
-    # ${CMAKE_CURRENT_LIST_DIR}/tusb_main.c
+    tusb_hid.c
     )
 target_include_directories(usb_hid_host PRIVATE   
-    ${CMAKE_CURRENT_LIST_DIR} # For tusb config
+    .
     ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
     ${PICO_SDK_PATH}/lib/tinyusb/src
     )
@@ -71,14 +70,12 @@ add_compile_definitions(
 
 # hog_keyboard
 
-# Add executable. Default name is the project name, version 0.1
 add_library(hog_keyboard)
 target_sources(hog_keyboard PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.c
-    # hog_main.c
+    hog_keyboard.c
     )
 target_include_directories(hog_keyboard PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR} # For btstack config
+    .
     # ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
     # ${PICO_SDK_PATH}/lib/tinyusb/src
     )
@@ -93,27 +90,16 @@ target_compile_definitions(hog_keyboard PRIVATE
     HAVE_BTSTACK_STDIN=1
     )
 pico_btstack_make_gatt_header(hog_keyboard PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
-# # this shouldn't be necessary, should be provided by the above
-# add_dependencies(hog_keyboard
-#     hog_keyboard_gatt_header
-#     )
-# target_include_directories(hog_keyboard PRIVATE
-#     ${CMAKE_CURRENT_BINARY_DIR}/generated/hog_keyboard_gatt_header
-#     )
+
 
 
 add_executable(bridge
     tusb_main.c
 )
 target_include_directories(bridge PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-    # ${PICO_SDK_PATH}/lib/tinyusb/src
-    # ${PICO_SDK_PATH}/lib/tinyusb/hw
-    # ${PICO_SDK_PATH}/src/common/pico_time/include/pico
-    # ${PICO_SDK_PATH}/src/common/pico_time/include
-    # ${PICO_SDK_PATH}/src/common/pico_base_headers/include
-    # ${PICO_SDK_PATH}/src/boards/include/boards
+    .
 )
+# TODO: make hog_keyboard and usb_hid_host public and see if we can remove the repeated dependencies below
 target_link_libraries(bridge
     hog_keyboard
     usb_hid_host
@@ -128,6 +114,7 @@ target_link_libraries(bridge
     pico_cyw43_arch_none
     hardware_adc
 )
+# this should be unnecessary
 pico_btstack_make_gatt_header(bridge PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
 
 
