@@ -23,6 +23,12 @@
  *
  */
 
+/**
+ * Copyright (c) 2022 Raspberry Pi (Trading) Ltd.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,16 +36,22 @@
 #include "bsp/board_api.h"
 #include "tusb.h"
 
+#include "btstack_run_loop.h"
+#include "pico/stdlib.h"
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
 extern void hid_app_task(void);
+void picow_bt_example_main(void);
+int picow_bt_example_init(void);
 
-/*------------- MAIN -------------*/
 int main(void) {
+
+  // tinyusb init
   board_init();
 
-  printf("TinyUSB Host HID Example\r\n");
+  printf("TinyUSB Host HID init\r\n");
 
   // init host stack on configured roothub port
   tuh_init(BOARD_TUH_RHPORT);
@@ -47,6 +59,21 @@ int main(void) {
   if (board_init_after_tusb) {
     board_init_after_tusb();
   }
+
+  // btstack init
+  printf("BTStack init\r\n");
+
+  stdio_init_all();
+
+  int res = picow_bt_example_init();
+  if (res){
+    return -1;
+  }
+
+  picow_bt_example_main();
+  btstack_run_loop_execute();
+
+  printf("TinyUSB Host HID loop starting\r\n");
 
   while (1) {
     // tinyusb host task
