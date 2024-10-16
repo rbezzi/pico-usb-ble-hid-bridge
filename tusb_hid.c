@@ -43,7 +43,7 @@ static struct
   tuh_hid_report_info_t report_info[MAX_REPORT];
 }hid_info[CFG_TUH_HID];
 
-static void process_kbd_report(hid_keyboard_report_t const *report);
+extern void process_kbd_report(hid_keyboard_report_t const *report);
 static void process_mouse_report(hid_mouse_report_t const * report);
 static void process_generic_report(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
 
@@ -127,13 +127,16 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
 // Keyboard
 //--------------------------------------------------------------------+
 
-
+/*
 static void process_kbd_report(hid_keyboard_report_t const *report)
 {
   printf("\nm:%d k[0]:%d k[1]:%d k[2]:%d k[3]:%d k[4]:%d k[5]:%d\n", report->modifier, 
     report->keycode[0], report->keycode[1], report->keycode[2], 
     report->keycode[3], report->keycode[4], report->keycode[5]);
+  printf("TODO: add report to btstack_ring_buffer\n");
+  // TODO: see if any change should be made to process_mouse_report
 }
+*/
 
 //--------------------------------------------------------------------+
 // Mouse

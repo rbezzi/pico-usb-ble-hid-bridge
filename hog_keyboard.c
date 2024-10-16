@@ -113,6 +113,8 @@ const uint8_t hid_descriptor_keyboard_boot_mode[] = {
     0xc0,                          // End collection
 };
 
+
+// TODO: change uint8_t report[8] int this hid_keyboard_report_t
 typedef struct hid_keyboard_report
 {
   uint8_t modifier;   /**< Keyboard modifier (KEYBOARD_MODIFIER_* masks). */
@@ -187,16 +189,14 @@ static void le_keyboard_setup(void){
 
 
 // HID Report sending
-static void send_hid_report(uint8_t report[8]){
-    uint8_t modifier = report[0];
-    uint8_t keycode = report[2];
-    
+static void send_hid_report(hid_keyboard_report_t *report){
+   
     switch (protocol_mode){
         case 0:
-            hids_device_send_boot_keyboard_input_report(con_handle, report, REPORT_SIZE);
+            hids_device_send_boot_keyboard_input_report(con_handle, (uint8_t *)report, sizeof(hid_keyboard_report_t));
             break;
         case 1:
-           hids_device_send_input_report(con_handle, report, REPORT_SIZE);
+           hids_device_send_input_report(con_handle, (uint8_t *)report, sizeof(hid_keyboard_report_t));
            break;
         default:
             break;
@@ -221,16 +221,16 @@ static void typing_can_send_now(void){
                 hid_keyboard_report_t report;
                 uint32_t num_bytes_read;
 
-                btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(report), &num_bytes_read);
+                btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(hid_keyboard_report_t), &num_bytes_read);
                 printf("num_bytes_read: %d\n", num_bytes_read);
                 if (num_bytes_read == 0){
                     state = W4_INPUT;
                     break;
                 }
 
-                printf("sending: %c\n", 'a' + report.keycode[0]);
+                printf("sending: %c\n", 'a' + report.keycode[0] - 4); // TODO: log the entire report
 
-                send_hid_report((uint8_t *)&report);
+                send_hid_report(&report);
                 state = W4_CAN_SEND_KEY_UP;
                 hids_device_request_can_send_now_event(con_handle);
                 break;
@@ -238,8 +238,8 @@ static void typing_can_send_now(void){
             break;
         case W4_CAN_SEND_KEY_UP: 
             printf("sending key up\n");
-            uint8_t report[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-            send_hid_report(report);
+            hid_keyboard_report_t report = {0, 0, {0, 0, 0, 0, 0, 0}};
+            send_hid_report(&report);
             if (btstack_ring_buffer_bytes_available(&report_input_buffer)){
                 state = W4_CAN_SEND_FROM_BUFFER;
                 hids_device_request_can_send_now_event(con_handle);
@@ -252,15 +252,28 @@ static void typing_can_send_now(void){
     }
 }
 
+// TODO: is this ever used? I think should be removed
 static void stdin_process(char character){
     hid_keyboard_report_t report = {0, 0, {character - 'a' + 4, 0, 0, 0, 0, 0}};
-    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)&report, sizeof(report));
+    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)&report, sizeof(hid_keyboard_report_t));
     // start sending
     if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
         state = W4_CAN_SEND_FROM_BUFFER;
         hids_device_request_can_send_now_event(con_handle);
     }
 }
+
+static void hid_process(hid_keyboard_report_t report) {
+    printf("hid_process\r\n");
+    hid_keyboard_report_t r = report;
+    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)&r, sizeof(hid_keyboard_report_t));
+    if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
+        state = W4_CAN_SEND_FROM_BUFFER;
+        hids_device_request_can_send_now_event(con_handle);
+    }
+}
+// call is: btstack_hid_setup(hid_process);
+// so hid_handler = hid_process
 
 static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
@@ -318,7 +331,19 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
     }
 }
 
-int picow_bt_example_init(void) {
+void process_kbd_report(hid_keyboard_report_t const *report) {
+    printf("process_kbd_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
+        report->modifier, report->keycode[0], report->keycode[1], report->keycode[2], report->keycode[3], report->keycode[4], report->keycode[5]);
+    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)report, sizeof(hid_keyboard_report_t));
+    btstack_run_loop_poll_data_sources_from_irq();
+    // start sending
+    if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
+        state = W4_CAN_SEND_FROM_BUFFER;
+        hids_device_request_can_send_now_event(con_handle);
+    }
+}
+
+int picow_bt_init(void) {
     // initialize CYW43 driver architecture (will enable BT if/because CYW43_ENABLE_BLUETOOTH == 1)
     if (cyw43_arch_init()) {
         printf("failed to initialise cyw43_arch\n");
@@ -328,24 +353,19 @@ int picow_bt_example_init(void) {
     return 0;
 }
 
-//int btstack_main(void);
 int btstack_main(void)
 {
     le_keyboard_setup();
 
     btstack_ring_buffer_init(&report_input_buffer, (uint8_t *)report_input_storage, sizeof(report_input_storage));
-    btstack_stdin_setup(stdin_process);
+    // REMOVE THIS
+    //btstack_stdin_setup(stdin_process);
+    //btstack_hid_setup(hid_process);
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
 
     return 0;
-}
-
-void picow_bt_example_main(void) {
-
-    btstack_main();
-
 }
 
 static int led_state = 0;
@@ -354,3 +374,42 @@ void hal_led_toggle(void){
     led_state = 1 - led_state;
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state);
 }
+
+static btstack_data_source_t hid_data_source;
+
+static void (*hid_handler)(hid_keyboard_report_t r);
+
+/*
+hid_keyboard_report_t get_report_from_usb(void){
+    hid_keyboard_report_t x = {0,0,{9,0,0,0,0,0}};
+    return x;
+}
+*/
+
+static void btstack_hid_process(struct btstack_data_source *ds, btstack_data_source_callback_type_t callback_type){
+    UNUSED(ds);
+    UNUSED(callback_type);
+
+    printf("btstack_hid_process\n");
+    if (hid_handler) {
+    //    while(true) { // FIXME: only one for now
+            // printf("btstack_hid_process: getting keystroke\n");
+            // hid_keyboard_report_t r = get_report_from_usb(); // ??
+            // if (!r) return;
+            // (*hid_handler)(r);
+    //    }
+    }
+}
+
+void btstack_hid_setup(void (*handler)(hid_keyboard_report_t c)) {
+        if (hid_handler) {
+            return;
+        }
+
+	hid_handler = handler;
+	btstack_run_loop_set_data_source_handler(&hid_data_source, &btstack_hid_process);
+	btstack_run_loop_enable_data_source_callbacks(&hid_data_source, DATA_SOURCE_CALLBACK_POLL);
+	btstack_run_loop_add_data_source(&hid_data_source);
+}
+
+// TODO call somewhere btstack_run_loop_poll_data_sources_from_irq() when the usb hid has a keystroke

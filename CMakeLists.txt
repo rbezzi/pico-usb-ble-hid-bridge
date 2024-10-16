@@ -12,7 +12,6 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-# Generated Cmake Pico project file
 
 cmake_minimum_required(VERSION 3.13)
 
@@ -20,29 +19,12 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Initialise pico_sdk from installed location
-# (note this can come from environment, CMake cache etc)
-
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
-if(WIN32)
-    set(USERHOME $ENV{USERPROFILE})
-else()
-    set(USERHOME $ENV{HOME})
-endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
-set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
-    include(${picoVscode})
-endif()
-# ====================================================================================
 set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(hog_keyboard C CXX ASM)
+project(usb_ble_hid_bridge C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -53,20 +35,16 @@ add_library(usb_hid_host)
 target_sources(usb_hid_host PUBLIC
     tusb_hid.c
     )
-target_include_directories(usb_hid_host PRIVATE   
+target_include_directories(usb_hid_host PUBLIC   
     .
     ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
     ${PICO_SDK_PATH}/lib/tinyusb/src
     )
-target_link_libraries(usb_hid_host PRIVATE
+target_link_libraries(usb_hid_host PUBLIC
     pico_stdlib 
     tinyusb_host 
     tinyusb_board
     )
-add_compile_definitions(
-    CFG_TUSB_MCU=OPT_MCU_RP2040
-    CFG_TUSB_OS=OPT_OS_PICO
-)
 
 # hog_keyboard
 
@@ -74,52 +52,35 @@ add_library(hog_keyboard)
 target_sources(hog_keyboard PUBLIC
     hog_keyboard.c
     )
-target_include_directories(hog_keyboard PRIVATE
+target_include_directories(hog_keyboard PUBLIC
     .
-    # ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
-    # ${PICO_SDK_PATH}/lib/tinyusb/src
     )
-target_link_libraries(hog_keyboard PRIVATE
+target_link_libraries(hog_keyboard PUBLIC
     pico_stdlib
     pico_btstack_ble
     pico_btstack_cyw43
     pico_cyw43_arch_none
     hardware_adc
     )
-target_compile_definitions(hog_keyboard PRIVATE
+target_compile_definitions(hog_keyboard PUBLIC
     HAVE_BTSTACK_STDIN=1
     )
-pico_btstack_make_gatt_header(hog_keyboard PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
+pico_btstack_make_gatt_header(hog_keyboard PUBLIC "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
 
 
-
-add_executable(bridge
+add_executable(usb_ble_hid_bridge
     tusb_main.c
 )
-target_include_directories(bridge PRIVATE
+target_include_directories(usb_ble_hid_bridge PUBLIC
     .
 )
-# TODO: make hog_keyboard and usb_hid_host public and see if we can remove the repeated dependencies below
-target_link_libraries(bridge
+target_link_libraries(usb_ble_hid_bridge
     hog_keyboard
     usb_hid_host
-
-    pico_stdlib 
-    tinyusb_host 
-    tinyusb_board
-
-    pico_stdlib
-    pico_btstack_ble
-    pico_btstack_cyw43
-    pico_cyw43_arch_none
-    hardware_adc
 )
-# this should be unnecessary
-pico_btstack_make_gatt_header(bridge PRIVATE "${CMAKE_CURRENT_LIST_DIR}/hog_keyboard.gatt")
 
+pico_add_extra_outputs(usb_ble_hid_bridge)
 
-pico_add_extra_outputs(bridge)
-
-pico_enable_stdio_usb(bridge 0)
-pico_enable_stdio_uart(bridge 1)
+pico_enable_stdio_usb(usb_ble_hid_bridge 0)
+pico_enable_stdio_uart(usb_ble_hid_bridge 1)
 
