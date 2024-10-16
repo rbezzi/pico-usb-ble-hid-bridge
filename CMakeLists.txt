@@ -69,7 +69,7 @@ pico_btstack_make_gatt_header(hog_keyboard PUBLIC "${CMAKE_CURRENT_LIST_DIR}/hog
 
 
 add_executable(usb_ble_hid_bridge
-    tusb_main.c
+    main.c
 )
 target_include_directories(usb_ble_hid_bridge PUBLIC
     .
