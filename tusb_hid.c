@@ -30,10 +30,6 @@
 // MACRO TYPEDEF CONSTANT ENUM DECLARATION
 //--------------------------------------------------------------------+
 
-// If your host terminal support ansi escape code such as TeraTerm
-// it can be use to simulate mouse cursor movement within terminal
-#define USE_ANSI_ESCAPE   0
-
 #define MAX_REPORT  4
 
 // Each HID instance can has multiple reports
@@ -127,55 +123,16 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
 // Keyboard
 //--------------------------------------------------------------------+
 
-/*
-static void process_kbd_report(hid_keyboard_report_t const *report)
-{
-  printf("\nm:%d k[0]:%d k[1]:%d k[2]:%d k[3]:%d k[4]:%d k[5]:%d\n", report->modifier, 
-    report->keycode[0], report->keycode[1], report->keycode[2], 
-    report->keycode[3], report->keycode[4], report->keycode[5]);
-  printf("TODO: add report to btstack_ring_buffer\n");
-  // TODO: see if any change should be made to process_mouse_report
-}
-*/
+// moved to hog_keyboard
 
 //--------------------------------------------------------------------+
 // Mouse
 //--------------------------------------------------------------------+
 
+// TODO: inappropriate name
 void cursor_movement(int8_t x, int8_t y, int8_t wheel)
 {
-#if USE_ANSI_ESCAPE
-  // Move X using ansi escape
-  if ( x < 0)
-  {
-    printf(ANSI_CURSOR_BACKWARD(%d), (-x)); // move left
-  }else if ( x > 0)
-  {
-    printf(ANSI_CURSOR_FORWARD(%d), x); // move right
-  }
-
-  // Move Y using ansi escape
-  if ( y < 0)
-  {
-    printf(ANSI_CURSOR_UP(%d), (-y)); // move up
-  }else if ( y > 0)
-  {
-    printf(ANSI_CURSOR_DOWN(%d), y); // move down
-  }
-
-  // Scroll using ansi escape
-  if (wheel < 0)
-  {
-    printf(ANSI_SCROLL_UP(%d), (-wheel)); // scroll up
-  }else if (wheel > 0)
-  {
-    printf(ANSI_SCROLL_DOWN(%d), wheel); // scroll down
-  }
-
-  printf("\r\n");
-#else
   printf("(%d %d %d)\r\n", x, y, wheel);
-#endif
 }
 
 static void process_mouse_report(hid_mouse_report_t const * report)

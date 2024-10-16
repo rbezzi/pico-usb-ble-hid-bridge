@@ -55,14 +55,10 @@ int main(void) {
   // init host stack on configured roothub port
   tuh_init(BOARD_TUH_RHPORT);
 
-  // useless for pico
-  // if (board_init_after_tusb) {
-  //  board_init_after_tusb();
-  // }
-
   // btstack init
   printf("BTStack init\r\n");
 
+  // TODO: do we need this?
   stdio_init_all();
 
   int res = picow_bt_init();
@@ -70,12 +66,7 @@ int main(void) {
     return -1;
   }
 
-  printf("__one\r\n");
   btstack_main();
-  printf("__two\r\n");
-  // REMOVE THIS
-  // btstack_run_loop_execute();
-  printf("__three\r\n");
 
   printf("TinyUSB Host HID loop starting\r\n");
 
@@ -86,33 +77,7 @@ int main(void) {
     hid_app_task(); // this is an empty method!!
   }
 }
-
-// REMOVE ME: working example
-/*
-int _____btstack_main(void)
-{
-
-    board_init();
-
-    // init host stack on configured roothub port
-    tuh_init(BOARD_TUH_RHPORT);
-
-    // HERE: these 3 below are in btstack_main()
-
-    le_keyboard_setup();
-
-    btstack_ring_buffer_init(&ascii_input_buffer, (uint8_t *)ascii_input_storage, sizeof(ascii_input_storage));
-
-    hci_power_control(HCI_POWER_ON);
-
-    while(true) {
-        tuh_task();
-        hid_app_task();
-    }
-
-    return 0;
-}
-*/
+ 
 //--------------------------------------------------------------------+
 // TinyUSB Callbacks
 //--------------------------------------------------------------------+
