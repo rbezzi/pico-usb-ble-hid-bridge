@@ -55,9 +55,6 @@
 #include "ble/gatt-service/device_information_service_server.h"
 #include "ble/gatt-service/hids_device.h"
 
-// delete this
-#define REPORT_SIZE 8 * sizeof(uint8_t)
-
 #define REPORT_INPUT_STORAGE_SIZE 20
 
 // from USB HID Specification 1.1, Appendix B.1
@@ -198,17 +195,17 @@ static void send_hid_report(hid_keyboard_report_t *report){
 }
 
 // TODO: can this be removed?
-// On systems with STDIN, we can directly type on the console
 static enum {
     W4_INPUT,
-    W4_CAN_SEND_FROM_BUFFER,
-    W4_CAN_SEND_KEY_UP,
+    W4_CAN_SEND_FROM_BUFFER
 } state;
 
 static hid_keyboard_report_t* report_input_storage[REPORT_INPUT_STORAGE_SIZE];
 static btstack_ring_buffer_t report_input_buffer;
 
+// TODO: rename this function
 static void typing_can_send_now(void){
+    // TODO: do we really need this? if we have only one case()???
     switch (state){
         case W4_CAN_SEND_FROM_BUFFER:
             while (1){
@@ -222,23 +219,12 @@ static void typing_can_send_now(void){
                     break;
                 }
 
-                printf("sending: %c\n", 'a' + report.keycode[0] - 4); // TODO: log the entire report
+                printf("send_hid_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
+                    report.modifier, report.keycode[0], report.keycode[1], report.keycode[2], report.keycode[3], report.keycode[4], report.keycode[5]);
 
                 send_hid_report(&report);
-                state = W4_CAN_SEND_KEY_UP;
                 hids_device_request_can_send_now_event(con_handle);
                 break;
-            }
-            break;
-        case W4_CAN_SEND_KEY_UP: 
-            printf("sending key up\n"); // TODO: do we need this?
-            hid_keyboard_report_t report = {0, 0, {0, 0, 0, 0, 0, 0}};
-            send_hid_report(&report);
-            if (btstack_ring_buffer_bytes_available(&report_input_buffer)){
-                state = W4_CAN_SEND_FROM_BUFFER;
-                hids_device_request_can_send_now_event(con_handle);
-            } else {
-                state = W4_INPUT;
             }
             break;
         default:
@@ -246,7 +232,7 @@ static void typing_can_send_now(void){
     }
 }
 
-static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
+static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
     UNUSED(size);
 
