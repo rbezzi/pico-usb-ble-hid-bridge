@@ -194,41 +194,26 @@ static void send_hid_report(hid_keyboard_report_t *report){
     }
 }
 
-// TODO: can this be removed?
-static enum {
-    W4_INPUT,
-    W4_CAN_SEND_FROM_BUFFER
-} state;
-
 static hid_keyboard_report_t* report_input_storage[REPORT_INPUT_STORAGE_SIZE];
 static btstack_ring_buffer_t report_input_buffer;
 
 // TODO: rename this function
-static void typing_can_send_now(void){
-    // TODO: do we really need this? if we have only one case()???
-    switch (state){
-        case W4_CAN_SEND_FROM_BUFFER:
-            while (1){
-                hid_keyboard_report_t report;
-                uint32_t num_bytes_read;
+static void can_send_now(void){
+    while (1){
+        hid_keyboard_report_t report;
+        uint32_t num_bytes_read;
 
-                btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(hid_keyboard_report_t), &num_bytes_read);
-                printf("num_bytes_read: %d\n", num_bytes_read);
-                if (num_bytes_read == 0){
-                    state = W4_INPUT;
-                    break;
-                }
-
-                printf("send_hid_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
-                    report.modifier, report.keycode[0], report.keycode[1], report.keycode[2], report.keycode[3], report.keycode[4], report.keycode[5]);
-
-                send_hid_report(&report);
-                hids_device_request_can_send_now_event(con_handle);
-                break;
-            }
+        btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(hid_keyboard_report_t), &num_bytes_read);
+        printf("num_bytes_read: %d\n", num_bytes_read);
+        if (num_bytes_read == 0){
             break;
-        default:
-            break;
+        }
+
+        printf("send_hid_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
+            report.modifier, report.keycode[0], report.keycode[1], report.keycode[2], report.keycode[3], report.keycode[4], report.keycode[5]);
+
+        send_hid_report(&report);
+        hids_device_request_can_send_now_event(con_handle);
     }
 }
 
@@ -265,7 +250,6 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 case HIDS_SUBEVENT_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_input_report_enable_get_con_handle(packet);
                     printf("Report Characteristic Subscribed %u\n", hids_subevent_input_report_enable_get_enable(packet));
-                    // INIT HERE
                     break;
                 case HIDS_SUBEVENT_BOOT_KEYBOARD_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_boot_keyboard_input_report_enable_get_con_handle(packet);
@@ -276,13 +260,12 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                     printf("Protocol Mode: %s mode\n", hids_subevent_protocol_mode_get_protocol_mode(packet) ? "Report" : "Boot");
                     break;
                 case HIDS_SUBEVENT_CAN_SEND_NOW:
-                    typing_can_send_now();
+                    can_send_now();
                     break;
                 default:
                     break;
             }
             break;
-            
         default:
             break;
     }
@@ -294,8 +277,7 @@ void process_kbd_report(hid_keyboard_report_t const *report) {
     btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)report, sizeof(hid_keyboard_report_t));
     btstack_run_loop_poll_data_sources_from_irq();
     // start sending
-    if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
-        state = W4_CAN_SEND_FROM_BUFFER;
+    if (con_handle != HCI_CON_HANDLE_INVALID){
         hids_device_request_can_send_now_event(con_handle);
     }
 }
