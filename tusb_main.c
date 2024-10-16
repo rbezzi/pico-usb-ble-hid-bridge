@@ -73,8 +73,6 @@ int main(void) {
   while (1) {
     // tinyusb host task
     tuh_task();
-
-    hid_app_task(); // this is an empty method!!
   }
 }
  

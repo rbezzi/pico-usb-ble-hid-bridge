@@ -246,16 +246,6 @@ static void typing_can_send_now(void){
     }
 }
 
-static void hid_process(hid_keyboard_report_t report) {
-    printf("hid_process\r\n");
-    hid_keyboard_report_t r = report;
-    btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)&r, sizeof(hid_keyboard_report_t));
-    if (state == W4_INPUT && con_handle != HCI_CON_HANDLE_INVALID){
-        state = W4_CAN_SEND_FROM_BUFFER;
-        hids_device_request_can_send_now_event(con_handle);
-    }
-}
-
 static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
     UNUSED(size);
@@ -352,25 +342,3 @@ void hal_led_toggle(void){
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state);
 }
 
-static btstack_data_source_t hid_data_source;
-
-static void (*hid_handler)(hid_keyboard_report_t r);
-
-// TODO: what's the point?
-static void btstack_hid_process(struct btstack_data_source *ds, btstack_data_source_callback_type_t callback_type){
-    UNUSED(ds);
-    UNUSED(callback_type);
-
-    printf("btstack_hid_process\n");
-}
-
-void btstack_hid_setup(void (*handler)(hid_keyboard_report_t c)) {
-        if (hid_handler) {
-            return;
-        }
-
-	hid_handler = handler;
-	btstack_run_loop_set_data_source_handler(&hid_data_source, &btstack_hid_process);
-	btstack_run_loop_enable_data_source_callbacks(&hid_data_source, DATA_SOURCE_CALLBACK_POLL);
-	btstack_run_loop_add_data_source(&hid_data_source);
-}
