@@ -119,21 +119,26 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
   }
 }
 
+void tuh_mount_cb(uint8_t dev_addr) {
+  // application set-up
+  printf("USB device (address: %d) mounted\r\n", dev_addr);
+}
+
+void tuh_umount_cb(uint8_t dev_addr) {
+  // application tear-down
+  printf("USB device (address: %d) unmounted \r\n", dev_addr);
+}
+
+
 //--------------------------------------------------------------------+
 // Keyboard
 //--------------------------------------------------------------------+
 
-// moved to hog_keyboard
+// process_kbd_report moved to hog_keyboard.c
 
 //--------------------------------------------------------------------+
 // Mouse
 //--------------------------------------------------------------------+
-
-// TODO: inappropriate name
-void cursor_movement(int8_t x, int8_t y, int8_t wheel)
-{
-  printf("(%d %d %d)\r\n", x, y, wheel);
-}
 
 static void process_mouse_report(hid_mouse_report_t const * report)
 {
@@ -150,9 +155,7 @@ static void process_mouse_report(hid_mouse_report_t const * report)
   } else {
     printf(" --- ");
   }
-
-  //------------- cursor movement -------------//
-  cursor_movement(report->x, report->y, report->wheel);
+  printf("mouse x: %d, y: %d, wheel: %d\r\n", report->x, report->y, report->wheel);
 }
 
 //--------------------------------------------------------------------+

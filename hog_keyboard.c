@@ -197,7 +197,6 @@ static void send_hid_report(hid_keyboard_report_t *report){
 static hid_keyboard_report_t* report_input_storage[REPORT_INPUT_STORAGE_SIZE];
 static btstack_ring_buffer_t report_input_buffer;
 
-// TODO: rename this function
 static void can_send_now(void){
     while (1){
         hid_keyboard_report_t report;

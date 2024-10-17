@@ -42,7 +42,6 @@
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
-extern void hid_app_task(void);
 int btstack_main(void);
 int picow_bt_init(void);
 
@@ -76,17 +75,4 @@ int main(void) {
   }
 }
  
-//--------------------------------------------------------------------+
-// TinyUSB Callbacks
-//--------------------------------------------------------------------+
-
-void tuh_mount_cb(uint8_t dev_addr) {
-  // application set-up
-  printf("USB device (address: %d) mounted\r\n", dev_addr);
-}
-
-void tuh_umount_cb(uint8_t dev_addr) {
-  // application tear-down
-  printf("USB device (address: %d) unmounted \r\n", dev_addr);
-}
 
