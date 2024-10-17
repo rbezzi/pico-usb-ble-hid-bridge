@@ -56,7 +56,7 @@
 #include "ble/gatt-service/device_information_service_server.h"
 #include "ble/gatt-service/hids_device.h"
 
-#define REPORT_INPUT_STORAGE_SIZE 20
+#define REPORT_INPUT_STORAGE_SIZE 50
 
 // from USB HID Specification 1.1, Appendix B.1
 const uint8_t hid_descriptor_keyboard_boot_mode[] = {
