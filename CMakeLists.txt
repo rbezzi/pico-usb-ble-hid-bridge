@@ -34,6 +34,7 @@ pico_sdk_init()
 add_library(usb_hid_host)
 target_sources(usb_hid_host PUBLIC
     tusb_hid.c
+    logger.c
     )
 target_include_directories(usb_hid_host PUBLIC   
     .
@@ -51,6 +52,7 @@ target_link_libraries(usb_hid_host PUBLIC
 add_library(hog_keyboard)
 target_sources(hog_keyboard PUBLIC
     hog_keyboard.c
+    logger.c 
     )
 target_include_directories(hog_keyboard PUBLIC
     .
@@ -70,7 +72,8 @@ pico_btstack_make_gatt_header(hog_keyboard PUBLIC "${CMAKE_CURRENT_LIST_DIR}/hog
 
 add_executable(usb_ble_hid_bridge
     main.c
-)
+    logger.c
+    )
 target_include_directories(usb_ble_hid_bridge PUBLIC
     .
 )

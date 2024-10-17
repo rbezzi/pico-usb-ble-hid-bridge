@@ -46,6 +46,7 @@
 #include <inttypes.h>
 
 #include "hog_keyboard.h"
+#include "logger.h"
 
 #include "btstack.h"
 
@@ -73,7 +74,7 @@ const uint8_t hid_descriptor_keyboard_boot_mode[] = {
     0x05, 0x07,                    //   Usage Page (Key codes)
     0x19, 0xe0,                    //   Usage Minimum (Keyboard LeftControl)
     0x29, 0xe7,                    //   Usage Maxium (Keyboard Right GUI)
-    0x15, 0x00,                    //   Logical Minimum (0)
+    0x15, 0x00,                    //   Logicalf Minimum (0)
     0x25, 0x01,                    //   Logical Maximum (1)
     0x81, 0x02,                    //   Input (Data, Variable, Absolute)
 
@@ -203,12 +204,12 @@ static void can_send_now(void){
         uint32_t num_bytes_read;
 
         btstack_ring_buffer_read(&report_input_buffer, (uint8_t *)&report, sizeof(hid_keyboard_report_t), &num_bytes_read);
-        printf("num_bytes_read: %d\n", num_bytes_read);
+        LOG_DEBUG("num_bytes_read: %d", num_bytes_read);
         if (num_bytes_read == 0){
             break;
         }
 
-        printf("send_hid_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
+        LOG_DEBUG("send_hid_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]", 
             report.modifier, report.keycode[0], report.keycode[1], report.keycode[2], report.keycode[3], report.keycode[4], report.keycode[5]);
 
         send_hid_report(&report);
@@ -227,36 +228,36 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             if (btstack_event_state_get_state(packet) != HCI_STATE_WORKING) return;
             bd_addr_t local_addr;
             gap_local_bd_addr(local_addr);
-            printf("BTstack up and running on %s.\n", bd_addr_to_str(local_addr));
+            LOG_INFO("BTstack up and running on %s", bd_addr_to_str(local_addr));
             break;
         case HCI_EVENT_DISCONNECTION_COMPLETE:
             con_handle = HCI_CON_HANDLE_INVALID;
-            printf("Disconnected\n");
+            LOG_INFO("Disconnected");
             break;
         case SM_EVENT_JUST_WORKS_REQUEST:
-            printf("Just Works requested\n");
+            LOG_INFO("Just Works requested");
             sm_just_works_confirm(sm_event_just_works_request_get_handle(packet));
             break;
         case SM_EVENT_NUMERIC_COMPARISON_REQUEST:
-            printf("Confirming numeric comparison: %"PRIu32"\n", sm_event_numeric_comparison_request_get_passkey(packet));
+            LOG_INFO("Confirming numeric comparison: %"PRIu32"", sm_event_numeric_comparison_request_get_passkey(packet));
             sm_numeric_comparison_confirm(sm_event_passkey_display_number_get_handle(packet));
             break;
         case SM_EVENT_PASSKEY_DISPLAY_NUMBER:
-            printf("Display Passkey: %"PRIu32"\n", sm_event_passkey_display_number_get_passkey(packet));
+            LOG_INFO("Display Passkey: %"PRIu32"", sm_event_passkey_display_number_get_passkey(packet));
             break;
         case HCI_EVENT_HIDS_META:
             switch (hci_event_hids_meta_get_subevent_code(packet)){
                 case HIDS_SUBEVENT_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_input_report_enable_get_con_handle(packet);
-                    printf("Report Characteristic Subscribed %u\n", hids_subevent_input_report_enable_get_enable(packet));
+                    LOG_INFO("Report Characteristic Subscribed %u", hids_subevent_input_report_enable_get_enable(packet));
                     break;
                 case HIDS_SUBEVENT_BOOT_KEYBOARD_INPUT_REPORT_ENABLE:
                     con_handle = hids_subevent_boot_keyboard_input_report_enable_get_con_handle(packet);
-                    printf("Boot Keyboard Characteristic Subscribed %u\n", hids_subevent_boot_keyboard_input_report_enable_get_enable(packet));
+                    LOG_INFO("Boot Keyboard Characteristic Subscribed %u", hids_subevent_boot_keyboard_input_report_enable_get_enable(packet));
                     break;
                 case HIDS_SUBEVENT_PROTOCOL_MODE:
                     protocol_mode = hids_subevent_protocol_mode_get_protocol_mode(packet);
-                    printf("Protocol Mode: %s mode\n", hids_subevent_protocol_mode_get_protocol_mode(packet) ? "Report" : "Boot");
+                    LOG_INFO("Protocol Mode: %s mode", hids_subevent_protocol_mode_get_protocol_mode(packet) ? "Report" : "Boot");
                     break;
                 case HIDS_SUBEVENT_CAN_SEND_NOW:
                     can_send_now();
@@ -271,7 +272,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 }
 
 void process_kbd_report(hid_keyboard_report_t const *report) {
-    printf("process_kbd_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]\n", 
+    LOG_DEBUG("process_kbd_report: modifier:[keycodes]: %2d:[ %2d, %2d, %2d, %2d, %2d, %2d ]", 
         report->modifier, report->keycode[0], report->keycode[1], report->keycode[2], report->keycode[3], report->keycode[4], report->keycode[5]);
     btstack_ring_buffer_write(&report_input_buffer, (uint8_t *)report, sizeof(hid_keyboard_report_t));
     btstack_run_loop_poll_data_sources_from_irq();
@@ -284,7 +285,7 @@ void process_kbd_report(hid_keyboard_report_t const *report) {
 int picow_bt_init(void) {
     // initialize CYW43 driver architecture (will enable BT if/because CYW43_ENABLE_BLUETOOTH == 1)
     if (cyw43_arch_init()) {
-        printf("failed to initialise cyw43_arch\n");
+        LOG_ERROR("failed to initialise cyw43_arch");
         return -1;
     }
     return 0;

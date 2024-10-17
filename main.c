@@ -39,6 +39,8 @@
 #include "btstack_run_loop.h"
 #include "pico/stdlib.h"
 
+#include "logger.h"
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
@@ -50,12 +52,12 @@ int main(void) {
   // tinyusb init
   board_init();
 
-  printf("TinyUSB Host HID init\r\n");
+  LOG_INFO("TinyUSB Host HID init");
   // init host stack on configured roothub port
   tuh_init(BOARD_TUH_RHPORT);
 
   // btstack init
-  printf("BTStack init\r\n");
+  LOG_INFO("BTStack init");
 
   stdio_init_all();
 
@@ -66,7 +68,7 @@ int main(void) {
 
   btstack_main();
 
-  printf("TinyUSB Host HID loop starting\r\n");
+  LOG_DEBUG("TinyUSB Host HID loop starting");
 
   while (1) {
     // tinyusb host task
