@@ -57,7 +57,6 @@ int main(void) {
   // btstack init
   printf("BTStack init\r\n");
 
-  // TODO: do we need this?
   stdio_init_all();
 
   int res = picow_bt_init();
